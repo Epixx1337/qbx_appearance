@@ -1,0 +1,78 @@
+{
+    "error": {
+        "cannot_afford": "You cannot afford this",
+        "outfit_limit": "You have reached the outfit limit",
+        "bag_cooldown": "You need to wait %d more seconds before changing again",
+        "bag_cooldown_short": "You cannot change outfits yet",
+        "no_outfits": "No outfits available",
+        "outfit_partial": "Some parts of this outfit no longer exist and were skipped",
+        "nothing_worn": "You are not wearing anything in that slot",
+        "item_invalid": "This clothing item no longer exists",
+        "item_wrong_model": "This item doesn't fit your body type",
+        "cdn_sync_failed": "CDN sync could not start: %s",
+        "outfit_save_failed": "The outfit could not be saved",
+        "outfit_share_failed": "The outfit could not be shared",
+        "no_nearby_players": "Nobody is close enough to share with",
+        "appearance_scope": "Unknown scope — use full, clothing, outfits, barber, tattoo or surgeon",
+        "player_offline": "That player is not online",
+        "inventory_full": "Your inventory is full",
+        "no_legacy_rows": "No legacy skins found to convert",
+        "zone_points": "A polygon needs at least 3 points",
+        "zone_group": "Lockers need a job/gang name",
+        "zone_failed": "Could not create the zone",
+        "zone_none": "No database zones exist yet",
+        "convert_aborted": "Conversion aborted: the converting client stopped responding",
+        "convert_format": "Usage: /convertappearance illenium | qb-clothing"
+    },
+    "info": {
+        "bag_used_up": "Your clothing bag is worn out",
+        "bag_uses": "Uses left: %d",
+        "clothing_item_desc": "A piece of clothing (%s)",
+        "convert_started": "Converting %d legacy skins...",
+        "convert_done": "Conversion finished: %d converted, %d failed",
+        "store_prompt": "[E] Open %s",
+        "outfit_kind_clothing": "Clothing only",
+        "outfit_kind_style": "Hair & tattoos only",
+        "peds_done": "All ped portraits are already captured — use /screenshotpeds overwrite to redo them",
+        "failed_items": "%d screenshot(s) failed — /screenshotfailed re-shoots them manually (list in F8)",
+        "no_failed_items": "No failed screenshots recorded — nothing to re-shoot",
+        "cdn_sync_started": "Uploading %d screenshots to the CDN in the background",
+        "cdn_sync_done": "CDN sync finished: %d uploaded, %d failed",
+        "cdn_sync_none": "All screenshots are already on the CDN",
+        "outfit_bag_label": "Outfit: %s",
+        "outfit_bag_desc": "Packed by %s",
+        "outfit_share_header": "Outfit Share",
+        "outfit_share_content": "Accept the outfit \"%s\" from %s?",
+        "accept": "Accept",
+        "decline": "Decline"
+    },
+    "success": {
+        "outfit_changed": "Outfit changed",
+        "outfit_saved": "Outfit saved",
+        "outfit_bag_given": "The outfit bag is in your inventory",
+        "outfit_share_sent": "Outfit offered",
+        "outfit_received": "Outfit \"%s\" added to your outfits",
+        "item_removed": "Removed your %s and put it in your inventory",
+        "item_equipped": "Equipped your %s",
+        "appearance_saved": "Appearance saved",
+        "tuning_saved": "Framing saved for %s — applies to every item of that slot",
+        "zone_created": "Zone #%d created — live for everyone",
+        "zone_updated": "Zone #%d updated — live for everyone",
+        "zone_deleted": "Zone #%d deleted"
+    },
+    "command": {
+        "strip_slot": "Remove your %s and turn it into an item"
+    },
+    "menu": {
+        "bag_title": "Clothing Bag",
+        "group_outfits": "Outfits"
+    },
+    "shop": {
+        "clothing": "Clothing Store",
+        "barber": "Barber Shop",
+        "tattoo": "Tattoo Parlor",
+        "surgeon": "Plastic Surgeon",
+        "job_locker": "Job Locker",
+        "gang_locker": "Gang Locker"
+    }
+}
