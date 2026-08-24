@@ -88,6 +88,13 @@ RegisterNetEvent('qbx_appearance:client:openOutfits', function()
 end)
 
 RegisterNetEvent('qbx_appearance:client:createCharacter', function()
+    local deadline = GetGameTimer() + 15000
+    while (not IsScreenFadedIn() or IsPlayerSwitchInProgress() or not DoesEntityExist(PlayerPedId()))
+        and GetGameTimer() < deadline do
+        Wait(200)
+    end
+    Wait(500)
+
     local sections = lib.table.deepclone(config.shopSections.full)
 
     if sharedConfig.creation.freemodeOnly then
