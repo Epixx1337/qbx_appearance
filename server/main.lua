@@ -522,11 +522,18 @@ if config.studioCommands then
     end)
 end
 
+local startingApartment = require '@qbx_core.config.client'.characters.startingApartment
+
 RegisterNetEvent('QBCore:Server:OnPlayerLoaded', function()
     local src = source --[[@as number]]
     local citizenid = getCitizenId(src)
     if not citizenid then return end
     local appearance = db.getAppearance(citizenid)
+
+    if not appearance and startingApartment and GetResourceState('qbx_properties') == 'started' then
+        return -- the property script opens character creation once the player is inside their first home
+    end
+
     TriggerClientEvent('qbx_appearance:client:loadAppearance', src, appearance)
 end)
 

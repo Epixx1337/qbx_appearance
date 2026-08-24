@@ -87,8 +87,13 @@ RegisterNetEvent('qbx_appearance:client:openOutfits', function()
     editor.open({ sections = {} })
 end)
 
+local creatingCharacter = false
+
 RegisterNetEvent('qbx_appearance:client:createCharacter', function()
-    local deadline = GetGameTimer() + 15000
+    if creatingCharacter then return end
+    creatingCharacter = true
+
+    local deadline = GetGameTimer() + 30000
     while (not IsScreenFadedIn() or IsPlayerSwitchInProgress() or not DoesEntityExist(PlayerPedId()))
         and GetGameTimer() < deadline do
         Wait(200)
@@ -120,6 +125,7 @@ RegisterNetEvent('qbx_appearance:client:createCharacter', function()
         charCreation = true,
     })
     editor.setCallback(function(result)
+        creatingCharacter = false
         if result then
             TriggerEvent('qbx_appearance:client:characterCreated', result)
         end
