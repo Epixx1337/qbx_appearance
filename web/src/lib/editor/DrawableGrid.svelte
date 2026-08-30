@@ -25,8 +25,11 @@
     const model = $derived(editor.catalog?.model ?? 'mp_m_freemode_01')
     const totalCount = $derived(collections.reduce((sum, group) => sum + group.count, 0))
 
+    const slotPrefix = $derived(`${isProp ? 'prop' : 'comp'}_${slotId}`)
+
     const entries = $derived.by(() => {
         const q = search.trim().toLowerCase()
+        const blocked = editor.catalog?.blockedItems
         const out = []
         for (const group of collections) {
             if (editor.collectionFilter !== ALL && group.collection !== editor.collectionFilter) continue
@@ -36,6 +39,7 @@
             if (q && !nameMatches && !numeric) continue
             for (let i = 0; i < group.count; i++) {
                 if (q && numeric && !String(i).includes(q) && !nameMatches) continue
+                if (blocked?.[`${slotPrefix}|${group.collection}|${i}`]) continue
                 out.push({ collection: group.collection, drawable: i, key: `${group.collection}:${i}` })
             }
         }

@@ -110,7 +110,71 @@ database and broadcast to every player instantly.
 | `convert.batchSize` | Legacy rows converted per client round-trip by `/convertappearance`. |
 | `imageUpload` | CDN provider, API key and auto-upload toggle — see `docs/cdn.md`. |
 | `pedAccess` | Per-player ped grants by any identifier (`citizenid:`, `license:`, `license2:`, `steam:`, `discord:`, `fivem:`). Grants extra models beyond the global policy; bypasses `freemodeOnly` and the category toggles, never the blacklist. Server-side only. |
+| `clothingAccess` | Restrict clothing per job, gang, identifier or Discord role — see below. |
 | `prices` | Charge per shop visit; `0` disables charging for that type. |
+
+### clothingAccess
+
+Hide specific drawables or whole DLC collections from the editor based on who
+the player is. Rules are resolved server-side per player when the editor opens
+— identifiers and role checks never reach the client, only the resulting list
+of what to hide.
+
+Each rule names the clothing it covers (`collections` for whole packs,
+`items` for single drawables) and who it applies to:
+
+- `mode = 'whitelist'` (default) — the clothing is hidden from everyone
+  **except** matching players
+- `mode = 'blacklist'` — the clothing is hidden **from** matching players
+
+A player matches through any of: `jobs`/`gangs` (name → minimum grade),
+`identifiers` (same formats as `pedAccess`), or `roles` (see below).
+
+```lua
+clothingAccess = {
+    roleProvider = nil,
+    rules = {
+        -- police uniforms: only officers see the pack
+        {
+            mode = 'whitelist',
+            collections = { 'mp_m_police_pack', 'mp_f_police_pack' },
+            jobs = { police = 0, sheriff = 0 },
+        },
+        -- one specific mask for a VIP player and a Discord booster role
+        {
+            mode = 'whitelist',
+            items = {
+                { component = 1, collection = 'mp_m_2024_01', drawable = 12 },
+            },
+            identifiers = { 'citizenid:ABC12345' },
+            roles = { '1146792312345678901' },
+        },
+        -- keep a bugged pack away from everyone except staff
+        {
+            mode = 'blacklist',
+            collections = { 'broken_pack' },
+            identifiers = {},
+        },
+    },
+},
+```
+
+Collection names are per gender — list both the `mp_m_` and `mp_f_` variants
+to cover both models.
+
+`roles` requires a Discord integration, since FiveM cannot read guild roles by
+itself. Point `roleProvider` at whatever your server uses; it receives a
+player source and returns a list of role ids:
+
+```lua
+roleProvider = function(source)
+    return exports.your_discord_resource:GetRoles(source)
+end,
+```
+
+This gating is a UI filter (like illenium's DLC whitelist): hidden items don't
+appear in the browser. It does not strip already-saved outfits when someone
+loses access.
 
 ## config/peds.lua
 

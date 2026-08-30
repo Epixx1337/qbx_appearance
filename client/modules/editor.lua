@@ -81,10 +81,22 @@ local function tattooCatalog()
     return out
 end
 
+local function filterBlockedCollections(list, blocked)
+    if not blocked or not next(blocked.collections) then return list end
+    local out = {}
+    for _, entry in ipairs(list) do
+        if not blocked.collections[entry.collection] then
+            out[#out + 1] = entry
+        end
+    end
+    return out
+end
+
 local function buildCatalog()
     local ped = cache.ped
     local freemode = appearance.isFreemodeModel(GetEntityModel(ped))
     local access = session.pedAccess or {}
+    local clothingAccess = session.clothingAccess
     local hasPersonalPeds = (access.models and #access.models > 0)
         or access.allowAnimalPeds or access.allowHumanPeds
     local catalog = {
@@ -104,11 +116,14 @@ local function buildCatalog()
     end
 
     for _, id in ipairs(appearance.COMPONENT_IDS) do
-        catalog.components[tostring(id)] = appearance.enumerateCollections(ped, id, false)
+        catalog.components[tostring(id)] = filterBlockedCollections(
+            appearance.enumerateCollections(ped, id, false), clothingAccess)
     end
     for _, id in ipairs(appearance.PROP_IDS) do
-        catalog.props[tostring(id)] = appearance.enumerateCollections(ped, id, true)
+        catalog.props[tostring(id)] = filterBlockedCollections(
+            appearance.enumerateCollections(ped, id, true), clothingAccess)
     end
+    catalog.blockedItems = clothingAccess and clothingAccess.items or nil
 
     if freemode then
         catalog.overlays = {}
@@ -148,6 +163,7 @@ function editor.open(opts)
         beforeTattoos = lib.table.deepclone(state.tattoos),
         beforeFade = state.hairFade,
         pedAccess = lib.callback.await('qbx_appearance:server:getPedAccess', false),
+        clothingAccess = lib.callback.await('qbx_appearance:server:getClothingAccess', false),
     }
 
     camera.start(cache.ped)

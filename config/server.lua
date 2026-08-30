@@ -25,6 +25,11 @@ return {
 
     pedAccess = {},
 
+    clothingAccess = {
+        roleProvider = nil,
+        rules = {},
+    },
+
     prices = {
         clothing = 100,
         barber = 50,

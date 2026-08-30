@@ -419,6 +419,76 @@ lib.callback.register('qbx_appearance:server:getPedAccess', function(source)
     return access
 end)
 
+local function ownedIdentifiers(source)
+    local owned = {}
+    local citizenid = getCitizenId(source)
+    if citizenid then owned['citizenid:' .. citizenid] = true end
+    for _, identifier in ipairs(GetPlayerIdentifiers(source --[[@as string]])) do
+        owned[identifier] = true
+    end
+    return owned
+end
+
+local function matchesClothingRule(source, player, rule, owned)
+    if rule.jobs then
+        local job = player.PlayerData.job
+        local minGrade = job and rule.jobs[job.name]
+        if minGrade and job.grade.level >= minGrade then return true end
+    end
+    if rule.gangs then
+        local gang = player.PlayerData.gang
+        local minGrade = gang and rule.gangs[gang.name]
+        if minGrade and gang.grade.level >= minGrade then return true end
+    end
+    if rule.identifiers then
+        for _, identifier in ipairs(rule.identifiers) do
+            if owned[identifier] then return true end
+        end
+    end
+    if rule.roles and config.clothingAccess.roleProvider then
+        local ok, roles = pcall(config.clothingAccess.roleProvider, source)
+        if ok and type(roles) == 'table' then
+            local held = {}
+            for _, role in ipairs(roles) do held[tostring(role)] = true end
+            for _, role in ipairs(rule.roles) do
+                if held[tostring(role)] then return true end
+            end
+        end
+    end
+    return false
+end
+
+lib.callback.register('qbx_appearance:server:getClothingAccess', function(source)
+    local rules = config.clothingAccess and config.clothingAccess.rules or {}
+    if #rules == 0 then return nil end
+    local player = exports.qbx_core:GetPlayer(source)
+    if not player then return nil end
+
+    local owned = ownedIdentifiers(source)
+    local blocked = { collections = {}, items = {} }
+
+    for _, rule in ipairs(rules) do
+        local matched = matchesClothingRule(source, player, rule, owned)
+        local block = rule.mode == 'blacklist' and matched or rule.mode ~= 'blacklist' and not matched
+        if block then
+            for _, collection in ipairs(rule.collections or {}) do
+                blocked.collections[collection] = true
+            end
+            for _, item in ipairs(rule.items or {}) do
+                local key = ('%s_%d|%s|%d'):format(
+                    item.prop and 'prop' or 'comp',
+                    item.prop or item.component or 0,
+                    item.collection or '',
+                    item.drawable or 0)
+                blocked.items[key] = true
+            end
+        end
+    end
+
+    if not next(blocked.collections) and not next(blocked.items) then return nil end
+    return blocked
+end)
+
 lib.addCommand('reloadskin', {
     help = 'Re-apply your saved appearance',
 }, function(source)
