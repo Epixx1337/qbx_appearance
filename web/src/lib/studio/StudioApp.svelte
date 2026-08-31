@@ -38,6 +38,11 @@
         control('cdnSync', { mode })
     }
 
+    function setHairColor(index) {
+        studio.hairColor = index
+        control('hairColor', { index })
+    }
+
     let jumpValue = $state('')
     let jumpSection = $state('')
 
@@ -240,9 +245,9 @@
             <button class="btn small" class:speed-active={studio.model === 'mp_f_freemode_01'}
                 onclick={() => control('model', { model: 'mp_f_freemode_01' })}>Female</button>
             <button class="btn small primary" disabled={!shootCategoryKey}
-                title="Auto-shoot every item of this category for the current model, then the other one"
-                onclick={() => control('shootCategory', { key: shootCategoryKey })}>
-                Shoot {shootCategoryKey || 'category'}
+                title="Auto-shoot this category for both models. With a DLC selected below, only that pack's items in the category are shot."
+                onclick={() => control('shootCategory', { key: shootCategoryKey, collection: dlcName || undefined })}>
+                Shoot {shootCategoryKey || 'category'}{dlcName ? ` · ${dlcName}` : ''}
             </button>
         </div>
         <div class="model-row">
@@ -278,6 +283,21 @@
         </div>
     {:else}
         <input class="input jump" type="text" placeholder="#" bind:value={jumpValue} onchange={jump} />
+    {/if}
+
+    {#if studio.manual && studio.hairColors.length > 0}
+        <div class="section-title">Hair Color — {studio.hairColor}</div>
+        <div class="hair-swatches">
+            {#each studio.hairColors as rgb, i (i)}
+                <button
+                    class="hair-swatch"
+                    class:active={studio.hairColor === i}
+                    style="background: rgb({rgb[0]}, {rgb[1]}, {rgb[2]})"
+                    title={String(i)}
+                    onclick={() => setHairColor(i)}
+                ></button>
+            {/each}
+        </div>
     {/if}
 
     <div class="section-title">Backdrop</div>
@@ -499,6 +519,26 @@
     .model-row {
         display: flex;
         gap: 6px;
+    }
+
+    .hair-swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+    }
+
+    .hair-swatch {
+        width: 16px;
+        height: 16px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .hair-swatch.active {
+        border-color: #fff;
+        box-shadow: 0 0 6px var(--accent-40);
     }
 
     .model-row .btn {

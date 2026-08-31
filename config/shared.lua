@@ -47,6 +47,7 @@ return {
     },
 
     studio = {
+        recolorHair = true,
         hairColor = 4,
         hairHighlight = 4,
         heroAngle = 25.0,

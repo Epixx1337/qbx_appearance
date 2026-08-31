@@ -45,6 +45,8 @@
         studio.cdn = data.cdn ?? { configured: false }
         studio.manual = data.manual === true
         studio.model = data.model ?? ''
+        studio.hairColors = data.hairColors ?? []
+        studio.hairColor = data.hairColor ?? 0
         studio.speed = 1
         app.view = 'studio'
     })
@@ -66,7 +68,7 @@
         let result
         try {
             const { processPair } = await import('./lib/studio/processor.js')
-            result = await processPair(data.uri1, data.uri2, data.opaque)
+            result = await processPair(data.uri1, data.uri2, data.opaque, data.despill, data.tint)
         } catch (err) {
             result = { ok: false, error: String(err) }
         }

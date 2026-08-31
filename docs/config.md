@@ -55,7 +55,8 @@ the other body type (drawable indexes differ per model).
 
 | option | meaning |
 | --- | --- |
-| `hairColor` / `hairHighlight` | Hair tint applied to the mannequin for hair thumbnails — a neutral brown reads best on dark UI tiles. |
+| `recolorHair` | Recolor hair thumbnails to `hairColor` during processing. Freemode hair captures untinted (the engine can't tint it on a headless mannequin), so the processor remaps it to the target color; `false` saves the raw untinted capture instead and hides the studio's hair color swatches. |
+| `hairColor` / `hairHighlight` | Hair color the thumbnails are recolored to — a neutral brown reads best on dark UI tiles. |
 | `heroAngle` | Degrees off the frontal axis for the 3/4 "hero" framing; `0` = dead-on frontal. |
 | `cameraHeight` | Camera elevation as a fraction of camera distance. |
 | `propPoses` | Pose played while shooting a prop slot (watches/bracelets raise the wrist toward the camera). Posed items are captured with a single chroma-keyed shot instead of the two-capture matte, because a playing animation would differ between the two captures. |

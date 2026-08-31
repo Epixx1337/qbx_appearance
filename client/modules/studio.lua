@@ -48,6 +48,15 @@ local function swait(ms)
     Wait(math.floor(ms / (session and session.speed or 1.0)))
 end
 
+local function initHeadBlend(ped, hash)
+    if not appearance.isFreemodeModel(hash) then return end
+    SetPedHeadBlendData(ped, 0, 0, 0, 0, 0, 0, 0.5, 0.5, 0.0, false)
+    local deadline = GetGameTimer() + 3000
+    while not HasPedHeadBlendFinished(ped) and GetGameTimer() < deadline do
+        Wait(50)
+    end
+end
+
 local IDLE_POSE = { dict = 'move_m@generic', clip = 'idle' }
 
 local function holdStill(ped)
@@ -159,12 +168,19 @@ local function buildWorkList(slots)
     local work = {}
     for _, slot in ipairs(slots) do
         local collections = appearance.enumerateCollections(ped, slot.id, slot.isProp)
+        local seen = {}
         for _, entry in ipairs(collections) do
             for drawable = 0, entry.count - 1 do
-                work[#work + 1] = {
-                    id = slot.id, isProp = slot.isProp or false,
-                    collection = entry.collection, drawable = drawable,
-                }
+                local global = slot.isProp
+                    and GetPedPropGlobalIndexFromCollection(ped, slot.id, entry.collection, drawable)
+                    or GetPedDrawableGlobalIndexFromCollection(ped, slot.id, entry.collection, drawable)
+                if not global or global < 0 or not seen[global] then
+                    if global and global >= 0 then seen[global] = true end
+                    work[#work + 1] = {
+                        id = slot.id, isProp = slot.isProp or false,
+                        collection = entry.collection, drawable = drawable,
+                    }
+                end
             end
         end
     end
@@ -257,6 +273,7 @@ local PRELOAD_TIMEOUT = 5000
 
 local function applyItem(item)
     local ped = session.ped
+    session.hairShot = not item.isProp and item.id == 2 or nil
 
     if session.poseActive then
         session.poseActive = false
@@ -288,9 +305,6 @@ local function applyItem(item)
         end
         appearance.setComponent(ped, item.id, { collection = item.collection, drawable = item.drawable })
         ReleasePedPreloadVariationData(ped)
-        if item.id == 2 then
-            SetPedHairColor(ped, sharedConfig.studio.hairColor, sharedConfig.studio.hairHighlight)
-        end
         if session.bodyMode then dressBody(item.id) else hideAll(item.id) end
         if item.id == 10 then
             local base = sharedConfig.studio.decalBase[session.modelName]
@@ -314,11 +328,22 @@ local function rehideHead()
     end
 end
 
+local function hairPalette()
+    local colors = {}
+    for i = 0, GetNumHairColors() - 1 do
+        local r, g, b = GetPedHairRgbColor(i)
+        colors[i + 1] = { r, g, b }
+    end
+    return colors
+end
+
 local function syncOpen()
     SendNUIMessage({ action = 'studio:open', data = {
         total = #session.work, manual = session.manual, headHide = session.headHide,
         sections = sectionsFromWork(session.work), tuning = session.tuning,
         cdn = session.cdn, model = session.modelName,
+        hairColors = sharedConfig.studio.recolorHair and hairPalette() or {},
+        hairColor = session.hairColorOverride or sharedConfig.studio.hairColor,
     } })
 end
 
@@ -362,11 +387,12 @@ function takeShot(bucket, filename)
         raw1 = captureRaw()
     else
         local partner = MATTE_PARTNER[primary] or 'magenta'
+        local settle = session and session.hairShot and 400 or 80
         backdrop.setColor(primary)
-        swait(80)
+        swait(settle)
         raw1 = captureRaw()
         backdrop.setColor(partner)
-        swait(80)
+        swait(settle)
         raw2 = captureRaw()
         backdrop.setColor(primary)
         if not raw2 or raw2 == '' then
@@ -381,8 +407,15 @@ function takeShot(bucket, filename)
     local id = processCounter
     local p = promise.new()
     pendingProcess[id] = p
+    local tint
+    if session and session.hairShot and sharedConfig.studio.recolorHair then
+        local r, g, b = GetPedHairRgbColor(session.hairColorOverride or sharedConfig.studio.hairColor)
+        tint = { r, g, b }
+    end
     SendNUIMessage({ action = 'studio:process', data = {
         id = id, uri1 = raw1, uri2 = raw2, opaque = session and session.opaque or nil,
+        despill = session and session.hairShot or nil,
+        tint = tint,
     } })
     SetTimeout(15000, function()
         if pendingProcess[id] then
@@ -587,6 +620,16 @@ function studio.start(slots, opts)
     end
 
     CreateThread(function()
+        while session and not session.stopped and session.work do
+            if slot0HideAllowed and not session.bodyMode and session.ped
+                and GetPedDrawableVariation(session.ped, 0) ~= -1 then
+                SetPedComponentVariation(session.ped, 0, -1, 0, 0)
+            end
+            Wait(0)
+        end
+    end)
+
+    CreateThread(function()
         while session and not session.stopped and session.index <= #session.work do
             if session.paused then
                 Wait(200)
@@ -786,8 +829,10 @@ function studio.control(action, data)
         SendNUIMessage({ action = 'studio:tuning', data = { tuning = session.tuning } })
     elseif action == 'model' and data and type(data.model) == 'string' then
         studio.setModel(data.model)
+    elseif action == 'hairColor' and data and type(data.index) == 'number' then
+        session.hairColorOverride = math.floor(data.index)
     elseif action == 'shootCategory' and data and type(data.key) == 'string' then
-        studio.shootCategory(data.key)
+        studio.shootCategory(data.key, type(data.collection) == 'string' and data.collection or nil)
     elseif action == 'shootCollection' and data and type(data.name) == 'string' then
         studio.shootCollection(data.name)
     elseif action == 'cdnSync' then
@@ -811,7 +856,20 @@ function studio.isActive()
     return session ~= nil
 end
 
-function studio.shootCategory(key)
+local function mapCollection(collection, modelName)
+    if modelName == 'mp_m_freemode_01' then
+        local mapped = collection:gsub('^mp_f_', 'mp_m_')
+        if mapped == collection then mapped = collection:gsub('^Female', 'Male') end
+        return mapped
+    elseif modelName == 'mp_f_freemode_01' then
+        local mapped = collection:gsub('^mp_m_', 'mp_f_')
+        if mapped == collection then mapped = collection:gsub('^Male', 'Female') end
+        return mapped
+    end
+    return collection
+end
+
+function studio.shootCategory(key, collection)
     if not session or session.shooting or session.categoryRun then return end
     session.categoryRun = true
     CreateThread(function()
@@ -828,13 +886,20 @@ function studio.shootCategory(key)
                 Wait(500)
             end
             if not session or session.stopped then break end
-            local target
-            for _, s in ipairs(sectionsFromWork(session.work)) do
-                if s.key == key then target = s break end
+            local target = collection and mapCollection(collection, session.modelName) or nil
+            if target == 'base' then target = '' end
+            local filtered = {}
+            for _, item in ipairs(buildWorkList(session.slots)) do
+                local folder = (item.isProp and PROP_FOLDERS[item.id] or COMP_FOLDERS[item.id]) or tostring(item.id)
+                if folder == key and (not target or item.collection == target) then
+                    filtered[#filtered + 1] = item
+                end
             end
-            if target then
-                session.index = target.start
-                session.pauseAfterIndex = target.start + target.count - 1
+            if #filtered > 0 then
+                session.work = filtered
+                session.index = 1
+                session.pauseAfterIndex = #filtered
+                syncOpen()
                 session.paused = false
                 while session and not session.stopped and not session.paused do
                     Wait(200)
@@ -843,6 +908,10 @@ function studio.shootCategory(key)
         end
         if session then
             session.categoryRun = nil
+            session.work = buildWorkList(session.slots)
+            session.index = 1
+            session.paused = true
+            syncOpen()
             local item = session.work[session.index]
             if item then applyItem(item) frameItem(item) end
         end
@@ -879,19 +948,6 @@ function studio.setModel(modelName)
         frameItem(item)
     end
     syncOpen()
-end
-
-local function mapCollection(collection, modelName)
-    if modelName == 'mp_m_freemode_01' then
-        local mapped = collection:gsub('^mp_f_', 'mp_m_')
-        if mapped == collection then mapped = collection:gsub('^Female', 'Male') end
-        return mapped
-    elseif modelName == 'mp_f_freemode_01' then
-        local mapped = collection:gsub('^mp_m_', 'mp_f_')
-        if mapped == collection then mapped = collection:gsub('^Male', 'Female') end
-        return mapped
-    end
-    return collection
 end
 
 function studio.shootCollection(name)
@@ -1201,6 +1257,7 @@ function studio.startPeds(overwrite)
             lib.requestModel(hash, 10000)
             local ped = CreatePed(4, hash, STUDIO_POS.x, STUDIO_POS.y, STUDIO_POS.z, STUDIO_HEADING, false, false)
             SetModelAsNoLongerNeeded(hash)
+            initHeadBlend(ped, hash)
             statuePed(ped)
             SetEntityHealth(ped, GetEntityMaxHealth(ped))
             session.ped = ped

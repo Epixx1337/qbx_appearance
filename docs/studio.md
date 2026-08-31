@@ -25,6 +25,12 @@ Output lands in `screenshots/` (one folder per slot under `clothing/`, plus
 `faces/` and `peds/`), named `<model>_<collection>_<drawable>.webp`. The NUI
 reads them after a resource restart, or from the CDN (`docs/cdn.md`).
 
+Several official GTA DLC collections re-expose drawables that already exist in
+another collection. The work list resolves every collection pair to its global
+index and shoots each real drawable exactly once, under the first collection
+that exposes it — the same effective count the classic global-index
+screenshotters produce. The editor hides those aliases too.
+
 ## The studio panel
 
 ![Manual mode with the photo frame and framing presets](media/studio-backdrop.png)
@@ -34,6 +40,11 @@ reads them after a resource restart, or from the CDN (`docs/cdn.md`).
 - **Shoot** — re-shoot the current item with the current framing and backdrop.
 - **Drag ←→** rotates the mannequin, **drag ↑↓** moves it in frame, **scroll**
   zooms. The dashed square is the photo frame: only what is inside it is kept.
+- **Hair Color swatches** (manual mode) — pick the color hair shots are
+  recolored to during processing (the viewport keeps showing the untinted
+  hair — hit **Shoot** and check the saved file). The shown index is what to
+  put into `studio.hairColor` in `config/shared.lua` once you've found the
+  one you like. The override lasts for the session.
 - **Backdrop swatches** — pick the primary backdrop color for items that blend
   into it (a green garment against green: switch to magenta).
 - **Camera nudge** — fine X/Y/Z/distance/FOV offsets for the current item.
@@ -45,7 +56,9 @@ reads them after a resource restart, or from the CDN (`docs/cdn.md`).
   every future batch run.
 - **Male / Female** — swap the mannequin mid-session (manual mode).
 - **Shoot ⟨category⟩** — auto-shoots the selected category for the current
-  model, then the other one, and returns to manual browsing.
+  model, then the other one, and returns to manual browsing. With a DLC
+  selected in the dropdown below, only that pack's items in the category are
+  shot.
 - **Shoot a DLC…** — shoots every item of one collection across all categories
   for both models. Collection names are gender-mapped automatically
   (`mp_m_2024_01` ↔ `mp_f_2024_01`). This is the tool for newly added packs.
@@ -74,6 +87,18 @@ Two capture variants exist: posed items (watches/bracelets with a raised-wrist
 pose) use a single chroma-keyed capture, since a playing animation would differ
 between two captures; eye close-ups are saved opaque exactly as framed, since
 there is no backdrop inside the frame to matte against.
+
+Hair is special. Freemode hair textures are grayscale — the color is applied
+at render time from tint indices stored in head blend data, and a ped with
+blend data can never hide its head again (the engine restores it, even with
+`allowEmptyHeadDrawable`). So the studio never sets blend data: hair renders
+untinted (a green-yellow gradient) on the headless mannequin, and the
+processor recolors those tinted pixels to the configured `studio.hairColor`
+using each pixel's brightness — the same remap the game shader would do.
+Non-tinted parts of a hairstyle (wraps, beads, highlights) keep their real
+colors. The viewport therefore always shows green hair; the saved thumbnail
+has the real color. `studio.recolorHair = false` turns the remap off and
+saves the raw untinted capture.
 
 Failures are tracked per item with the reason, reported in the panel and the
 console, and `/screenshotfailed` re-shoots them manually. "Empty" counts are

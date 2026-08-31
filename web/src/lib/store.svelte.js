@@ -28,6 +28,8 @@ export const studio = $state({
     cdn: { configured: false, auto: false },
     manual: false,
     model: '',
+    hairColors: [],
+    hairColor: 0,
 })
 
 export const bag = $state({

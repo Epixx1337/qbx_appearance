@@ -128,7 +128,7 @@ function chromaKey(p, w, h) {
     }
 }
 
-export async function processPair(uri1, uri2, opaque) {
+export async function processPair(uri1, uri2, opaque, despill, tint) {
     if (opaque) {
         const img = await loadImage(uri1)
         const frame = frameCropped(img)
@@ -196,6 +196,56 @@ export async function processPair(uri1, uri2, opaque) {
                 p1[i + c] = value < 0 ? 0 : value > 255 ? 255 : Math.round(value)
             }
             p1[i + 3] = Math.round(alpha * 255)
+        }
+    }
+
+    if (tint) {
+        const [tr, tg, tb] = tint
+        for (let i = 0; i < p1.length; i += 4) {
+            if (p1[i + 3] <= ALPHA_THRESHOLD) continue
+            const r = p1[i], g = p1[i + 1], b = p1[i + 2]
+            const mx = Math.max(r, g, b)
+            if (mx === 0) continue
+            const mn = Math.min(r, g, b)
+            const d = mx - mn
+            const sat = d / mx
+            let hue = 0
+            if (d > 0) {
+                if (mx === r) hue = 60 * (((g - b) / d + 6) % 6)
+                else if (mx === g) hue = 60 * ((b - r) / d + 2)
+                else hue = 60 * ((r - g) / d + 4)
+            }
+            if (hue < 40 || hue > 180) continue
+            const edge = hue < 60 ? (60 - hue) / 20 : hue > 150 ? (hue - 150) / 30 : 0
+            const weight = (1 - Math.min(1, edge)) * Math.min(1, sat / 0.22)
+            if (weight <= 0) continue
+            const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+            const scale = lum / 0.55
+            const shine = Math.max(0, lum - 0.6) * 225
+            const nr = Math.min(255, tr * scale + shine)
+            const ng = Math.min(255, tg * scale + shine)
+            const nb = Math.min(255, tb * scale + shine)
+            p1[i] = Math.round(r + (nr - r) * weight)
+            p1[i + 1] = Math.round(g + (ng - g) * weight)
+            p1[i + 2] = Math.round(b + (nb - b) * weight)
+        }
+    }
+
+    if (despill && !tint) {
+        const greenDominant = B1[1] > B1[0] && B1[1] > B1[2]
+        const magentaDominant = B1[0] > B1[1] && B1[2] > B1[1]
+        for (let i = 0; i < p1.length; i += 4) {
+            if (p1[i + 3] <= ALPHA_THRESHOLD) continue
+            if (greenDominant) {
+                const cap = Math.max(p1[i], p1[i + 2])
+                if (p1[i + 1] > cap) p1[i + 1] = cap
+            } else if (magentaDominant) {
+                const cap = Math.max(p1[i + 1], Math.min(p1[i], p1[i + 2]))
+                if (p1[i] > cap && p1[i + 2] > cap) {
+                    p1[i] = cap
+                    p1[i + 2] = cap
+                }
+            }
         }
     }
 

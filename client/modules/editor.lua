@@ -125,6 +125,31 @@ local function buildCatalog()
     end
     catalog.blockedItems = clothingAccess and clothingAccess.items or nil
 
+    for _, group in ipairs({
+        { entries = catalog.components, isProp = false, prefix = 'comp' },
+        { entries = catalog.props, isProp = true, prefix = 'prop' },
+    }) do
+        for id, collections in pairs(group.entries) do
+            local slotId = tonumber(id) --[[@as number]]
+            local seen = {}
+            for _, entry in ipairs(collections) do
+                for drawable = 0, entry.count - 1 do
+                    local global = group.isProp
+                        and GetPedPropGlobalIndexFromCollection(ped, slotId, entry.collection, drawable)
+                        or GetPedDrawableGlobalIndexFromCollection(ped, slotId, entry.collection, drawable)
+                    if global and global >= 0 then
+                        if seen[global] then
+                            catalog.blockedItems = catalog.blockedItems or {}
+                            catalog.blockedItems[('%s_%d|%s|%d'):format(group.prefix, slotId, entry.collection, drawable)] = true
+                        else
+                            seen[global] = true
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     if freemode then
         catalog.overlays = {}
         for _, id in ipairs(HEAD_OVERLAY_IDS) do
