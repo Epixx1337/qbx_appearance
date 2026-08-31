@@ -25,6 +25,19 @@ local function cleanup()
     pedCache = {}
 end
 
+lib.callback.register('qbx_appearance:client:convertLegacySkin', function(skin, model)
+    local ok, blob = pcall(function()
+        local converted = convert.fromIllenium(skin)
+        local ped = getWorkPed(converted.model or model or 'mp_m_freemode_01')
+        if ped then
+            appearance.normalizeLegacy(ped, converted)
+        end
+        return converted
+    end)
+    cleanup()
+    return ok and blob or nil
+end)
+
 lib.callback.register('qbx_appearance:client:convertBatch', function(format, batch)
     local results = {}
     for i = 1, #batch do

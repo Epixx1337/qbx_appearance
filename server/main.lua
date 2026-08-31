@@ -594,11 +594,28 @@ end
 
 local startingApartment = require '@qbx_core.config.client'.characters.startingApartment
 
+local function migrateLegacySkin(src, citizenid)
+    local ok, row = pcall(MySQL.single.await,
+        'SELECT `skin`, `model` FROM `playerskins` WHERE `citizenid` = ? AND `active` = 1', { citizenid })
+    if not ok or not row then return nil end
+    local skin = json.decode(row.skin)
+    if not skin then return nil end
+    local blob = lib.callback.await('qbx_appearance:client:convertLegacySkin', src, skin, row.model)
+    if type(blob) ~= 'table' then return nil end
+    db.saveAppearance(citizenid, blob)
+    lib.print.info(('migrated legacy skin for %s'):format(citizenid))
+    return blob
+end
+
 RegisterNetEvent('QBCore:Server:OnPlayerLoaded', function()
     local src = source --[[@as number]]
     local citizenid = getCitizenId(src)
     if not citizenid then return end
     local appearance = db.getAppearance(citizenid)
+
+    if not appearance then
+        appearance = migrateLegacySkin(src, citizenid)
+    end
 
     if not appearance and startingApartment and GetResourceState('qbx_properties') == 'started' then
         return -- the property script opens character creation once the player is inside their first home

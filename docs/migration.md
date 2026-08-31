@@ -9,11 +9,19 @@ The migration happens in two stages so nothing breaks while you verify.
    and exports, so dependent resources keep working — but if the originals are
    still started they will fight over the same events and commands.
 2. Import `sql/install.sql`.
-3. Run `/convertappearance illenium` (or `qb-clothing`) once in-game as admin.
-   The converter reads the legacy `playerskins` rows and writes them into the
-   `qbx_appearance` table, resolving global drawable indexes into collection
-   pairs through the conversion natives on your client (batched,
-   `convert.batchSize` rows per round-trip).
+3. Migrate the skins — both paths work, use either or both:
+   - **Automatic**: nothing to run. When a player logs in with no
+     `qbx_appearance` row but an active `playerskins` row, their skin is
+     converted on their own client right then, saved, and applied. Players
+     migrate themselves as they log in.
+   - **Bulk**: run `/convertappearance illenium` (or `qb-clothing`) once
+     in-game as admin to convert every row up front (batched,
+     `convert.batchSize` rows per round-trip). Useful if you want the whole
+     database converted before dropping the legacy table.
+
+   Either way the conversion resolves global drawable indexes into collection
+   pairs through the conversion natives on a live client — that's why it
+   can't happen purely server-side.
 4. Keep `legacyMirror = true` in `config/server.lua`: every save is mirrored
    back into `playerskins` in illenium format, so anything still reading that
    table (an unpatched qbx_core multichar preview, third-party scripts) keeps
