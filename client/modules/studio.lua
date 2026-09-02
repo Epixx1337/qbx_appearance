@@ -620,16 +620,6 @@ function studio.start(slots, opts)
     end
 
     CreateThread(function()
-        while session and not session.stopped and session.work do
-            if slot0HideAllowed and not session.bodyMode and session.ped
-                and GetPedDrawableVariation(session.ped, 0) ~= -1 then
-                SetPedComponentVariation(session.ped, 0, -1, 0, 0)
-            end
-            Wait(0)
-        end
-    end)
-
-    CreateThread(function()
         while session and not session.stopped and session.index <= #session.work do
             if session.paused then
                 Wait(200)
