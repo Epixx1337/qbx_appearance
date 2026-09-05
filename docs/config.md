@@ -2,7 +2,8 @@
 
 Four files under `config/`. `shared.lua` loads on both sides, `client.lua` and
 `peds.lua` on the client, `server.lua` only on the server (identifiers and API
-keys never reach clients).
+keys never reach clients). The bare-body drawables live in
+`shared/defaults.lua` — see the last section.
 
 ## config/shared.lua
 
@@ -40,9 +41,9 @@ uploaded URLs instead — see `docs/cdn.md`.
 | `slots` | Per-slot definition: chat `command`, display `label`, the `component` or `prop` id, and the equip animation (`anim`, optional `animOff` for a different take-off animation). |
 
 Running a slot's command (`/pants`, `/hat`, ...) plays the undress animation,
-swaps the slot to its naked default and puts the piece in the inventory. Using
-the item plays the dress animation and re-equips it. Items refuse to equip on
-the other body type (drawable indexes differ per model).
+swaps the slot to its naked default (`shared/defaults.lua`, see below) and puts
+the piece in the inventory. Using the item plays the dress animation and
+re-equips it. Items refuse to equip on the other body type (drawable indexes differ per model).
 
 ### outfits
 
@@ -209,3 +210,94 @@ Append custom tattoo DLCs to `list` — the UI picks them up automatically:
 
 `hairFades` are decorations layered under the hair component, offered in the
 Hair panel.
+
+## shared/defaults.lua
+
+What a freemode ped wears when a slot is "empty": bare arms, no undershirt, the
+no-top torso, underwear, bare feet. The file is keyed by model, then by
+component id:
+
+```lua
+return {
+    ['mp_m_freemode_01'] = {
+        components = {
+            ['3'] = { global = true, drawable = 15, texture = 0 },   -- arms
+            ['4'] = { global = true, drawable = 61, texture = 0 },   -- legs
+            ['6'] = { global = true, drawable = 34, texture = 0 },   -- shoes
+            ['8'] = { global = true, drawable = 15, texture = 0 },   -- undershirt
+            ['11'] = { global = true, drawable = 252, texture = 0 }, -- top
+        },
+    },
+    ['mp_f_freemode_01'] = {
+        components = {
+            ['3'] = { global = true, drawable = 15, texture = 0 },
+            ['4'] = { global = true, drawable = 14, texture = 0 },
+            ['6'] = { global = true, drawable = 35, texture = 0 },
+            ['8'] = { global = true, drawable = 14, texture = 0 },
+            ['11'] = { global = true, drawable = 74, texture = 0 },
+        },
+    },
+}
+```
+
+These are used in four places:
+
+- taking a piece off with a physical-item command (`/shirt`, `/pants`, `/shoes`)
+  swaps that slot to its default and hands the piece over;
+- a new character starts wearing exactly these;
+- switching model in the editor dresses the new body with them;
+- the editor's undress toggles and the studio's body mode use them as the base.
+
+Slots without an entry (mask, bag, ...) fall back to drawable 0 of the base
+collection, which is "nothing" for those.
+
+### Two ways to write an entry
+
+`global = true` means the drawable is a global index — the plain number every
+clothing list, the radial menu and the classic screenshot tools use, counted
+across all installed packs. That's the form the file ships with, because the
+well-known bare-body numbers are global ones. They are resolved to the right
+pack on the player's ped at runtime, so they keep working as packs are added.
+
+An entry can also point at a specific pack with a collection pair, the same
+form the editor and the database use:
+
+```lua
+['11'] = { collection = 'mp_m_2023_01', drawable = 5, texture = 0 },
+```
+
+Use whichever you have at hand. The editor shows the collection and local
+index of the worn item in the item grid (`mp_m_2023_01` · `5`), so copying an
+item from there is a collection pair; a number from a clothing list is a
+global index and needs `global = true`.
+
+### Example: a different bare top
+
+If your server prefers a plain white tee over the bare torso when a shirt comes
+off, change the top entry for that model:
+
+```lua
+['mp_m_freemode_01'] = {
+    components = {
+        ['3'] = { global = true, drawable = 0, texture = 0 },    -- arms that match a tee
+        ['4'] = { global = true, drawable = 61, texture = 0 },
+        ['6'] = { global = true, drawable = 34, texture = 0 },
+        ['8'] = { global = true, drawable = 15, texture = 0 },
+        ['11'] = { global = true, drawable = 15, texture = 0 },  -- white t-shirt
+    },
+},
+```
+
+Restart the resource; there is no migration, the values are read live.
+
+### Invisible arms after taking a shirt off
+
+Most newer packs build the arms into the top itself and pair the top with an
+"invisible" arms drawable (component 3), so the sleeves don't clip. Taking that
+top off only swaps component 11 — the invisible arms stay, and the player
+looks like a torso with no arms. This is how the outfit was built, not a
+broken default: the player picks a bare-arms drawable in the arms category
+(global 15 for men, 15 for women, or whatever your defaults say) and the arms
+are back. Changing the `'3'` entry here only affects what new characters and
+the editor's undress toggle use; the shirt command deliberately does not
+touch arms, because resetting them would silently remove worn gloves.
