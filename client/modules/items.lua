@@ -22,7 +22,7 @@ local function defaultComponent(slotKey)
     local modelDefaults = defaults[modelName]
     if slot.component and modelDefaults then
         local d = modelDefaults.components[tostring(slot.component)]
-        if d then return d end
+        if d then return appearance.resolveGlobal(cache.ped, slot.component, d) end
     end
     return { collection = '', drawable = 0, texture = 0 }
 end

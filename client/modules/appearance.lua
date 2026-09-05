@@ -314,6 +314,22 @@ function appearance.enumerateCollections(ped, componentId, isProp)
     return out
 end
 
+---@param ped number
+---@param componentId number
+---@param entry { global: boolean?, collection: string?, drawable: number, texture: number? }
+---@return { collection: string, drawable: number, texture: number }
+function appearance.resolveGlobal(ped, componentId, entry)
+    if not entry.global or entry.collection then
+        return { collection = entry.collection or '', drawable = entry.drawable, texture = entry.texture or 0 }
+    end
+    local name = GetPedCollectionNameFromDrawable(ped, componentId, entry.drawable)
+    local localIndex = GetPedCollectionLocalIndexFromDrawable(ped, componentId, entry.drawable)
+    if name and localIndex and localIndex >= 0 then
+        return { collection = name, drawable = localIndex, texture = entry.texture or 0 }
+    end
+    return { collection = '', drawable = 0, texture = 0 }
+end
+
 ---@param ped number ped of the appearance's model
 ---@param data table
 ---@return table
