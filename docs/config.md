@@ -38,7 +38,7 @@ uploaded URLs instead — see `docs/cdn.md`.
 | --- | --- |
 | `enabled` | Master toggle for physical clothing items and the item-based outfit sharing mode. |
 | `item` | The ONE generic ox_inventory item used for every slot; metadata carries the slot, collection pair, label and thumbnail. |
-| `slots` | Per-slot definition: chat `command`, display `label`, the `component` or `prop` id, and the equip animation (`anim`, optional `animOff` for a different take-off animation). |
+| `slots` | Per-slot definition: chat `command`, display `label`, the `component` or `prop` id, and the equip animation (`anim`, optional `animOff` for a different take-off animation). Optional `resetWith`: component ids that go back to their bare defaults when the slot is stripped and are restored when the item is put back on (the shipped shirt slot resets arms, undershirt and decals). |
 
 Running a slot's command (`/pants`, `/hat`, ...) plays the undress animation,
 swaps the slot to its naked default (`shared/defaults.lua`, see below) and puts
@@ -290,14 +290,25 @@ off, change the top entry for that model:
 
 Restart the resource; there is no migration, the values are read live.
 
-### Invisible arms after taking a shirt off
+### Taking a shirt off: `resetWith`
 
 Most newer packs build the arms into the top itself and pair the top with an
-"invisible" arms drawable (component 3), so the sleeves don't clip. Taking that
-top off only swaps component 11 — the invisible arms stay, and the player
-looks like a torso with no arms. This is how the outfit was built, not a
-broken default: the player picks a bare-arms drawable in the arms category
-(global 15 for men, 15 for women, or whatever your defaults say) and the arms
-are back. Changing the `'3'` entry here only affects what new characters and
-the editor's undress toggle use; the shirt command deliberately does not
-touch arms, because resetting them would silently remove worn gloves.
+"invisible" arms drawable (component 3), so the sleeves don't clip. If taking
+the top off only swapped component 11, the invisible arms would stay and the
+player would look like a torso with no arms. The shirt slot therefore carries
+`resetWith`:
+
+```lua
+shirt = { command = 'shirt', label = 'Shirt', component = 11,
+    resetWith = { 3, 8, 10 },   -- arms, undershirt, decals
+    anim = { dict = 'clothingtie', clip = 'try_tie_negative_a', dur = 1200 } },
+```
+
+When the shirt comes off, every listed component goes back to its entry in
+`shared/defaults.lua` (or drawable 0 when there is none, as for decals). The
+values they had ride along in the shirt item's metadata, so putting the shirt
+back on restores the exact arms, gloves, undershirt and decal that were worn
+with it — nothing is lost, and a player who wants gloves on a bare torso just
+picks them again. The list is yours to change: drop `10` to keep decals showing
+on bare skin, or add `resetWith` to other slots whose packs have similar
+pairings.

@@ -14,17 +14,21 @@ local function playSlotAnim(slot, off)
     Wait(pause < 500 and 500 or pause)
 end
 
-local function defaultComponent(slotKey)
-    local slot = slots[slotKey]
+local function currentModelName()
     local model = GetEntityModel(cache.ped)
-    local modelName = model == `mp_f_freemode_01` and 'mp_f_freemode_01'
+    return model == `mp_f_freemode_01` and 'mp_f_freemode_01'
         or model == `mp_m_freemode_01` and 'mp_m_freemode_01' or state.modelName
-    local modelDefaults = defaults[modelName]
-    if slot.component and modelDefaults then
-        local d = modelDefaults.components[tostring(slot.component)]
-        if d then return appearance.resolveGlobal(cache.ped, slot.component, d) end
-    end
+end
+
+local function defaultComponent(componentId)
+    local modelDefaults = defaults[currentModelName()]
+    local d = modelDefaults and modelDefaults.components[tostring(componentId)]
+    if d then return appearance.resolveGlobal(cache.ped, componentId, d) end
     return { collection = '', drawable = 0, texture = 0 }
+end
+
+local function companionIds(slot)
+    return type(slot.resetWith) == 'table' and slot.resetWith or nil
 end
 
 RegisterNetEvent('qbx_appearance:client:stripSlot', function(slotKey)
@@ -37,7 +41,7 @@ RegisterNetEvent('qbx_appearance:client:stripSlot', function(slotKey)
         current = appearance.getProp(ped, slot.prop)
     else
         current = appearance.getComponent(ped, slot.component)
-        local naked = defaultComponent(slotKey)
+        local naked = defaultComponent(slot.component)
         if current.collection == naked.collection and current.drawable == naked.drawable then
             current = nil
         end
@@ -48,6 +52,13 @@ RegisterNetEvent('qbx_appearance:client:stripSlot', function(slotKey)
     end
 
     current.model = state.modelName
+    local resetIds = companionIds(slot)
+    if resetIds then
+        current.companions = {}
+        for _, id in ipairs(resetIds) do
+            current.companions[tostring(id)] = appearance.getComponent(ped, id)
+        end
+    end
 
     playSlotAnim(slot, true)
     local stripped
@@ -55,11 +66,16 @@ RegisterNetEvent('qbx_appearance:client:stripSlot', function(slotKey)
         ClearPedProp(ped, slot.prop)
         stripped = true
     else
-        stripped = appearance.setComponent(ped, slot.component, defaultComponent(slotKey))
+        stripped = appearance.setComponent(ped, slot.component, defaultComponent(slot.component))
     end
     if not stripped then
         exports.qbx_core:Notify(locale('error.item_invalid'), 'error')
         return
+    end
+    if resetIds then
+        for _, id in ipairs(resetIds) do
+            appearance.setComponent(ped, id, defaultComponent(id))
+        end
     end
 
     local ok = lib.callback.await('qbx_appearance:server:giveClothingItem', false, slotKey, current)
@@ -68,6 +84,9 @@ RegisterNetEvent('qbx_appearance:client:stripSlot', function(slotKey)
             appearance.setProp(ped, slot.prop, current)
         else
             appearance.setComponent(ped, slot.component, current)
+        end
+        for id, companion in pairs(current.companions or {}) do
+            appearance.setComponent(ped, tonumber(id) --[[@as number]], companion)
         end
         return
     end
@@ -100,6 +119,20 @@ RegisterNetEvent('qbx_appearance:client:equipClothingItem', function(slotKey, in
     if not applied then
         exports.qbx_core:Notify(locale('error.item_invalid'), 'error')
         return
+    end
+
+    local resetIds = companionIds(slot)
+    if resetIds and type(metadata.companions) == 'table' then
+        for _, id in ipairs(resetIds) do
+            local companion = metadata.companions[tostring(id)]
+            if type(companion) == 'table' and type(companion.drawable) == 'number' then
+                appearance.setComponent(ped, id, {
+                    collection = companion.collection or '',
+                    drawable = companion.drawable,
+                    texture = companion.texture or 0,
+                })
+            end
+        end
     end
 
     if lib.callback.await('qbx_appearance:server:consumeClothingItem', false, slotKey, invSlot) then

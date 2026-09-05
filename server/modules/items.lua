@@ -97,6 +97,21 @@ if sharedConfig.physicalItems.enabled then
             if url then imageurl = url end
         end
 
+        local companions
+        if type(data.companions) == 'table' then
+            companions = {}
+            for id, companion in pairs(data.companions) do
+                if tonumber(id) and type(companion) == 'table' and type(companion.drawable) == 'number' then
+                    companions[tostring(id)] = {
+                        collection = tostring(companion.collection or ''),
+                        drawable = math.floor(companion.drawable),
+                        texture = math.floor(tonumber(companion.texture) or 0),
+                    }
+                end
+            end
+            if not next(companions) then companions = nil end
+        end
+
         local metadata = {
             slot = slotKey,
             model = model,
@@ -106,6 +121,7 @@ if sharedConfig.physicalItems.enabled then
             label = ('%s #%d (%s)'):format(slot.label, drawable, gender),
             description = locale('info.clothing_item_desc', slotKey),
             imageurl = imageurl,
+            companions = companions,
         }
 
         if not exports.ox_inventory:CanCarryItem(source, itemName, 1) then

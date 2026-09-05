@@ -47,3 +47,4 @@ resource writes the metadata on the spawned `clothing_item`:
 | `label` | display name, e.g. `Hat #12` (shown instead of "Clothing") |
 | `imageurl` | the item's clothing screenshot (`nui://qbx_appearance/screenshots/clothing/...`), shown as the inventory tile image once the studio has generated it |
 | `description` | slot description |
+| `companions` | only on slots with `resetWith` (the shirt): the arms, undershirt and decal worn under it, restored when the item is used |

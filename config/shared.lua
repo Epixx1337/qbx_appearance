@@ -31,6 +31,7 @@ return {
             mask = { command = 'mask', label = 'Mask', component = 1,
                 anim = { dict = 'mp_masks@standard_car@ds@', clip = 'put_on_mask', dur = 800 } },
             shirt = { command = 'shirt', label = 'Shirt', component = 11,
+                resetWith = { 3, 8, 10 },
                 anim = { dict = 'clothingtie', clip = 'try_tie_negative_a', dur = 1200 } },
             pants = { command = 'pants', label = 'Pants', component = 4,
                 anim = { dict = 're@construction', clip = 'out_of_breath', dur = 1300 } },

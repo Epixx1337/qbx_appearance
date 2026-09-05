@@ -4,7 +4,7 @@ game 'gta5'
 name 'qbx_appearance'
 description 'Collection-native appearance, outfits and clothing studio for Qbox'
 repository 'https://github.com/Epixx1337/qbx_appearance'
-version '0.2.2'
+version '0.2.3'
 
 ox_lib 'locale'
 
