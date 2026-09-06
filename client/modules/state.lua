@@ -7,6 +7,17 @@ local state = {
     lastSaved = nil,
 }
 
+---@return string
+function state.currentModelName()
+    local model = GetEntityModel(PlayerPedId())
+    if model == `mp_f_freemode_01` then
+        state.modelName = 'mp_f_freemode_01'
+    elseif model == `mp_m_freemode_01` then
+        state.modelName = 'mp_m_freemode_01'
+    end
+    return state.modelName
+end
+
 ---@return table
 function state.snapshot()
     local ped = PlayerPedId()

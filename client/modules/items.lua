@@ -14,14 +14,8 @@ local function playSlotAnim(slot, off)
     Wait(pause < 500 and 500 or pause)
 end
 
-local function currentModelName()
-    local model = GetEntityModel(cache.ped)
-    return model == `mp_f_freemode_01` and 'mp_f_freemode_01'
-        or model == `mp_m_freemode_01` and 'mp_m_freemode_01' or state.modelName
-end
-
 local function defaultComponent(componentId)
-    local modelDefaults = defaults[currentModelName()]
+    local modelDefaults = defaults[state.currentModelName()]
     local d = modelDefaults and modelDefaults.components[tostring(componentId)]
     if d then return appearance.resolveGlobal(cache.ped, componentId, d) end
     return { collection = '', drawable = 0, texture = 0 }
@@ -51,7 +45,7 @@ RegisterNetEvent('qbx_appearance:client:stripSlot', function(slotKey)
         return
     end
 
-    current.model = state.modelName
+    current.model = state.currentModelName()
     local resetIds = companionIds(slot)
     if resetIds then
         current.companions = {}
@@ -97,7 +91,7 @@ end)
 RegisterNetEvent('qbx_appearance:client:equipClothingItem', function(slotKey, invSlot, metadata)
     local slot = slots[slotKey]
     if not slot or type(metadata) ~= 'table' or not metadata.drawable then return end
-    if metadata.model and metadata.model ~= state.modelName then
+    if metadata.model and metadata.model ~= state.currentModelName() then
         exports.qbx_core:Notify(locale('error.item_wrong_model'), 'error')
         return
     end
